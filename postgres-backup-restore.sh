@@ -271,7 +271,7 @@ trap 'handle_error $? $LINENO' ERR
 declare -A CONFIG=(
     [REMOTE_HOST]="46.250.224.248"
     [REMOTE_PORT]="54321"
-    [REMOTE_DB]="dccpadmin-backup2"
+    [REMOTE_DB]="dccpadmin_backup1"
     [REMOTE_USER]="philex"
     [REMOTE_PASSWORD]="admin@123"
     [LOCAL_HOST]="localhost"
