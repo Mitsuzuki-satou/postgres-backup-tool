@@ -911,6 +911,10 @@ main() {
 }
 
 # Script entry point
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# Fix for BASH_SOURCE[0] unbound variable when script is piped via curl
+if [[ -n "${BASH_SOURCE:-}" && "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+elif [[ -z "${BASH_SOURCE:-}" ]]; then
+    # When script is piped, just run main
     main "$@"
 fi
