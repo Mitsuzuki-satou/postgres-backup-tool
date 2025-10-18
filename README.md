@@ -1,15 +1,35 @@
-# PostgreSQL Advanced Backup & Restore Tool
+# PostgreSQL Backup & Restore Tool v3.0
 
-A comprehensive tool for backing up and restoring PostgreSQL databases with visual feedback, progress tracking, and multiple format support.
+A comprehensive, multi-interface PostgreSQL backup and restore solution with advanced features like scheduling, encryption, and multiple user interfaces.
 
 ## 🚀 Quick Start
+
+### Multi-Interface Application (Recommended)
+```bash
+# Clone the repository
+git clone https://github.com/Mitsuzuki-satou/postgres-backup-tool.git
+cd postgres-backup-tool
+
+# Set up virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application (choose your preferred interface)
+python main.py --cli      # Command-line interface
+python main.py --tui      # Terminal user interface  
+python main.py --web      # Web interface at http://127.0.0.1:8080
+python main.py --scheduler # Background scheduler daemon
+```
 
 ### Shell Script (Bash)
 ```bash
 curl -sSL https://raw.githubusercontent.com/Mitsuzuki-satou/postgres-backup-tool/main/postgres-backup-restore.sh | bash
 ```
 
-### Python Version (Recommended)
+### Legacy Python Version
 ```bash
 # Download and run
 curl -sSL https://raw.githubusercontent.com/Mitsuzuki-satou/postgres-backup-tool/main/postgres_backup_restore.py -o postgres_backup_restore.py
@@ -24,21 +44,56 @@ python3 postgres_backup_restore.py
 
 ## 📋 Features
 
-- **🔄 Multiple Backup Formats**: SQL, compressed SQL, and directory format with parallel processing
+### 🎯 Multiple Interface Options
+- **🖥️ CLI Mode**: Command-line interface for scripting and automation
+- **📱 TUI Mode**: Rich terminal user interface with interactive dashboard
+- **🌐 Web Mode**: Modern web interface with TailwindCSS and dark mode
+- **⏰ Scheduler Mode**: Background daemon for automated backups
+
+### 🔄 Advanced Backup Features
+- **Multiple Backup Formats**: SQL, compressed SQL, and directory format with parallel processing
 - **📊 Real-time Progress**: Visual progress bars with file size and table count monitoring
-- **🎨 Colored Interface**: Rich terminal output with colors and symbols
+- **🎨 Rich Interfaces**: Modern UI with colors, symbols, and responsive design
 - **⚙️ Flexible Configuration**: Interactive setup, environment variables, and config files
 - **🔍 Connection Testing**: Verify remote and local database connections before operations
 - **📝 Comprehensive Logging**: Detailed operation logs with timestamps
 - **🔒 Error Handling**: Robust error handling with cleanup on failure
 - **🗂️ Backup Management**: List, verify, and manage backup files
+- **🌙 Dark Mode**: Full dark/light theme support in web interface
+- **📱 Responsive Design**: Mobile-friendly web interface
 
 ## 🛠️ Installation
 
 ### Prerequisites
 - PostgreSQL client tools (`psql`, `pg_dump`, `pg_restore`)
-- Python 3.6+ (for Python version)
+- Python 3.8+ (for multi-interface version)
 - Bash shell (for shell script version)
+
+### Method 1: Multi-Interface Application (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/Mitsuzuki-satou/postgres-backup-tool.git
+cd postgres-backup-tool
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+python main.py --help
+```
+
+### Method 2: Legacy Single Script
+
+```bash
+# Download directly
+curl -sSL https://raw.githubusercontent.com/Mitsuzuki-satou/postgres-backup-tool/main/postgres_backup_restore.py -o postgres_backup_restore.py
+python3 postgres_backup_restore.py
+```
 
 ### Install PostgreSQL Client Tools
 

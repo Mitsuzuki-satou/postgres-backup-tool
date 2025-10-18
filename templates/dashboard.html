@@ -1,0 +1,927 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - PostgreSQL Backup & Restore Tool{% endblock %}
+
+{% block content %}
+<div class="min-h-full bg-gray-50 dark:bg-gray-900">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-database text-primary text-2xl mr-3"></i>
+                    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">PostgreSQL Backup & Restore</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="theme-toggle" class="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:block"></i>
+                    </button>
+                    <button class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>New Backup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 dark:bg-green-900 rounded-full">
+                        <i class="fas fa-check-circle text-green-600 dark:text-green-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">System Status</p>
+                        <p class="text-2xl font-semibold text-gray-900 dark:text-white">Operational</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                        <i class="fas fa-archive text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Backups</p>
+                        <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="total-backups">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
+                        <i class="fas fa-clock text-yellow-600 dark:text-yellow-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Scheduled Jobs</p>
+                        <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="scheduled-jobs">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
+                        <i class="fas fa-play text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Active Tasks</p>
+                        <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="active-tasks">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <nav class="flex -mb-px">
+                    <button class="tab-button active px-6 py-3 border-b-2 border-primary text-primary font-medium" data-tab="backups">
+                        <i class="fas fa-archive mr-2"></i>Backups
+                    </button>
+                    <button class="tab-button px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" data-tab="schedule">
+                        <i class="fas fa-calendar-alt mr-2"></i>Schedule
+                    </button>
+                    <button class="tab-button px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" data-tab="logs">
+                        <i class="fas fa-file-alt mr-2"></i>Logs
+                    </button>
+                    <button class="tab-button px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" data-tab="settings">
+                        <i class="fas fa-cog mr-2"></i>Settings
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Backups Tab -->
+                <div id="backups-tab" class="tab-content">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Recent Backups</h3>
+                        <button id="create-backup-btn" class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Create Backup
+                        </button>
+                    </div>
+                    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Size</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                    <th class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="backups-list" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Backups will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Schedule Tab -->
+                <div id="schedule-tab" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Scheduled Jobs</h3>
+                        <button id="create-job-btn" class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Create Job
+                        </button>
+                    </div>
+                    <div id="jobs-list" class="space-y-4">
+                        <!-- Jobs will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Logs Tab -->
+                <div id="logs-tab" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">System Logs</h3>
+                        <button id="refresh-logs-btn" class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                    </div>
+                    <div id="logs-container" class="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
+                        <!-- Logs will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settings-tab" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Configuration Management</h3>
+                        <div class="flex space-x-3">
+                            <button id="export-config-btn" class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 transition-colors">
+                                <i class="fas fa-download mr-2"></i>Export Config
+                            </button>
+                            <label for="import-config-file" class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 transition-colors cursor-pointer">
+                                <i class="fas fa-upload mr-2"></i>Import Config
+                            </label>
+                            <input type="file" id="import-config-file" accept=".json" class="hidden">
+                        </div>
+                    </div>
+
+                    <!-- Credential Configuration -->
+                    <div class="space-y-6">
+                        <!-- Database Credentials -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-md font-medium text-gray-900 dark:text-white">
+                                    <i class="fas fa-database mr-2"></i>Database Credentials
+                                </h4>
+                                <div class="flex space-x-2">
+                                    <button class="test-connection-btn" data-type="database" data-target="source">
+                                        <i class="fas fa-plug mr-1"></i>Test Source
+                                    </button>
+                                    <button class="test-connection-btn" data-type="database" data-target="target">
+                                        <i class="fas fa-plug mr-1"></i>Test Target
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Source Database -->
+                            <div class="mb-6">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">🔗 Source Database (Backup From)</h5>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Host</label>
+                                        <input type="text" id="source-host" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="source" data-field="host">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Port</label>
+                                        <input type="number" id="source-port" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="source" data-field="port">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Database</label>
+                                        <input type="text" id="source-database" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="source" data-field="database">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+                                        <input type="text" id="source-username" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="source" data-field="username">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                                        <input type="password" id="source-password" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="source" data-field="password">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">SSL Mode</label>
+                                        <select id="source-ssl" class="credential-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="source" data-field="ssl_mode">
+                                            <option value="disable">Disable</option>
+                                            <option value="allow">Allow</option>
+                                            <option value="prefer">Prefer</option>
+                                            <option value="require">Require</option>
+                                            <option value="verify-ca">Verify CA</option>
+                                            <option value="verify-full">Verify Full</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Connection Timeout (s)</label>
+                                        <input type="number" id="source-timeout" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="source" data-field="connection_timeout">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Target Database -->
+                            <div>
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">🎯 Target Database (Restore To)</h5>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Host</label>
+                                        <input type="text" id="target-host" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="target" data-field="host">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Port</label>
+                                        <input type="number" id="target-port" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="target" data-field="port">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Database</label>
+                                        <input type="text" id="target-database" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="target" data-field="database">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+                                        <input type="text" id="target-username" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="target" data-field="username">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                                        <input type="password" id="target-password" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="target" data-field="password">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">SSL Mode</label>
+                                        <select id="target-ssl" class="credential-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="target" data-field="ssl_mode">
+                                            <option value="disable">Disable</option>
+                                            <option value="allow">Allow</option>
+                                            <option value="prefer">Prefer</option>
+                                            <option value="require">Require</option>
+                                            <option value="verify-ca">Verify CA</option>
+                                            <option value="verify-full">Verify Full</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Connection Timeout (s)</label>
+                                        <input type="number" id="target-timeout" class="credential-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600" data-type="database" data-target="target" data-field="connection_timeout">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Storage Configuration -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                            <h4 class="text-md font-medium text-gray-900 dark:text-white mb-4">
+                                <i class="fas fa-hdd mr-2"></i>Storage Configuration
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Backup Directory</label>
+                                    <input type="text" id="backup-dir" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Temporary Directory</label>
+                                    <input type="text" id="temp-dir" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connection Status -->
+                        <div id="connection-status" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hidden">
+                            <h4 class="text-md font-medium text-gray-900 dark:text-white mb-4">
+                                <i class="fas fa-info-circle mr-2"></i>Connection Status
+                            </h4>
+                            <div id="connection-status-content" class="text-sm">
+                                <!-- Status messages will appear here -->
+                            </div>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="flex justify-end">
+                            <button id="save-credentials-btn" class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors">
+                                <i class="fas fa-save mr-2"></i>Save All Credentials
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Backup Modal -->
+    <div id="backup-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Create New Backup</h3>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Database</label>
+                        <select id="backup-database" class="backup-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">Select database</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Backup Type</label>
+                        <select id="backup-type" class="backup-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600">
+                            <option value="full">Full</option>
+                            <option value="incremental">Incremental</option>
+                            <option value="differential">Differential</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Compression</label>
+                        <select id="backup-compression" class="backup-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-gray-700 dark:border-gray-600">
+                            <option value="gzip">GZIP</option>
+                            <option value="bzip2">BZIP2</option>
+                            <option value="lz4">LZ4</option>
+                            <option value="zstd">ZSTD</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="cancel-backup-btn" class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 transition-colors">Cancel</button>
+                    <button id="confirm-backup-btn" class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">Create Backup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    initializeComponents();
+    loadDashboardData();
+    setupEventListeners();
+    setupThemeToggle();
+});
+
+function initializeComponents() {
+    // Initialize Select2 components
+    $('.backup-select').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+    
+    $('.credential-select').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+    
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Configure toastr
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
+}
+
+function setupEventListeners() {
+    // Tab navigation
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const tabName = this.dataset.tab;
+            switchTab(tabName);
+        });
+    });
+
+    // Backup modal
+    document.getElementById('create-backup-btn').addEventListener('click', showBackupModal);
+    document.getElementById('cancel-backup-btn').addEventListener('click', hideBackupModal);
+    document.getElementById('confirm-backup-btn').addEventListener('click', createBackup);
+
+    // Settings and credentials
+    document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+    document.getElementById('save-credentials-btn').addEventListener('click', saveCredentials);
+    document.getElementById('refresh-logs-btn').addEventListener('click', loadLogs);
+    
+    // Import/Export configuration
+    document.getElementById('export-config-btn').addEventListener('click', exportConfig);
+    document.getElementById('import-config-file').addEventListener('change', importConfig);
+    
+    // Connection testing
+    document.querySelectorAll('.test-connection-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const type = this.dataset.type;
+            const target = this.dataset.target;
+            testConnection(type, target);
+        });
+    });
+    
+    // Auto-save credential inputs
+    document.querySelectorAll('.credential-input').forEach(input => {
+        input.addEventListener('change', function() {
+            markCredentialAsChanged(this);
+        });
+    });
+}
+
+function switchTab(tabName) {
+    // Update button states
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active', 'border-primary', 'text-primary');
+        btn.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+    activeBtn.classList.add('active', 'border-primary', 'text-primary');
+    activeBtn.classList.remove('border-transparent', 'text-gray-500');
+
+    // Update content visibility
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+
+    // Load tab-specific data
+    if (tabName === 'backups') loadBackups();
+    else if (tabName === 'schedule') loadJobs();
+    else if (tabName === 'logs') loadLogs();
+    else if (tabName === 'settings') loadSettings();
+}
+
+async function loadDashboardData() {
+    try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        
+        document.getElementById('total-backups').textContent = data.total_backups || 0;
+        document.getElementById('scheduled-jobs').textContent = data.scheduler_stats?.total_jobs || 0;
+        document.getElementById('active-tasks').textContent = data.active_backups + data.active_restores;
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+async function loadBackups() {
+    try {
+        const response = await fetch('/api/backups');
+        const data = await response.json();
+        
+        const backupsList = document.getElementById('backups-list');
+        backupsList.innerHTML = '';
+        
+        if (data.backups.length === 0) {
+            backupsList.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">No backups found</td></tr>';
+            return;
+        }
+        
+        data.backups.forEach(backup => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${backup.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatBytes(backup.size)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${new Date(backup.created * 1000).toLocaleString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button class="text-primary hover:text-primary/80 mr-3">Restore</button>
+                    <button class="text-red-600 hover:text-red-900">Delete</button>
+                </td>
+            `;
+            backupsList.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading backups:', error);
+    }
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showBackupModal() {
+    document.getElementById('backup-modal').classList.remove('hidden');
+}
+
+function hideBackupModal() {
+    document.getElementById('backup-modal').classList.add('hidden');
+}
+
+async function createBackup() {
+    const database = document.getElementById('backup-database').value;
+    const backupType = document.getElementById('backup-type').value;
+    const compression = document.getElementById('backup-compression').value;
+    
+    if (!database) {
+        alert('Please select a database');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/backup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: `Backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`,
+                source_config: {
+                    host: 'localhost',
+                    port: 5432,
+                    database: database,
+                    username: 'postgres',
+                    password: ''
+                },
+                backup_config: {
+                    backup_type: backupType,
+                    compression: compression,
+                    parallel_jobs: 4
+                }
+            })
+        });
+        
+        if (response.ok) {
+            hideBackupModal();
+            loadBackups();
+            loadDashboardData();
+            alert('Backup started successfully!');
+        } else {
+            alert('Error starting backup');
+        }
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        alert('Error creating backup');
+    }
+}
+
+function setupThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+    
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        html.classList.add('dark');
+    }
+    
+    themeToggle.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+}
+
+async function loadJobs() {
+    // Implementation for loading scheduled jobs
+    console.log('Loading jobs...');
+}
+
+async function loadLogs() {
+    try {
+        const response = await fetch('/api/logs');
+        const data = await response.json();
+        
+        const logsContainer = document.getElementById('logs-container');
+        logsContainer.innerHTML = '';
+        
+        data.logs.forEach(log => {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'mb-2';
+            logEntry.innerHTML = `<span class="text-gray-400">[${log.timestamp}]</span> <span class="text-${log.level === 'ERROR' ? 'red' : log.level === 'WARNING' ? 'yellow' : 'green'}-400">${log.level}:</span> ${log.message}`;
+            logsContainer.appendChild(logEntry);
+        });
+    } catch (error) {
+        console.error('Error loading logs:', error);
+    }
+}
+
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/config');
+        const data = await response.json();
+        
+        // Load credentials
+        await loadCredentials();
+        
+        // Load application settings
+        if (data.app) {
+            document.getElementById('backup-dir').value = data.app.backup_dir || '';
+            document.getElementById('temp-dir').value = data.app.temp_dir || '';
+        }
+        
+        // Load database configurations
+        if (data.database) {
+            // Source database
+            if (data.database.source) {
+                document.getElementById('source-host').value = data.database.source.host || '';
+                document.getElementById('source-port').value = data.database.source.port || 5432;
+                document.getElementById('source-database').value = data.database.source.database || '';
+                document.getElementById('source-username').value = data.database.source.username || '';
+                document.getElementById('source-password').value = data.database.source.password || '';
+                $('#source-ssl').val(data.database.source.ssl_mode || 'prefer').trigger('change');
+                document.getElementById('source-timeout').value = data.database.source.connection_timeout || 30;
+            }
+            
+            // Target database
+            if (data.database.target) {
+                document.getElementById('target-host').value = data.database.target.host || '';
+                document.getElementById('target-port').value = data.database.target.port || 5432;
+                document.getElementById('target-database').value = data.database.target.database || '';
+                document.getElementById('target-username').value = data.database.target.username || '';
+                document.getElementById('target-password').value = data.database.target.password || '';
+                $('#target-ssl').val(data.database.target.ssl_mode || 'prefer').trigger('change');
+                document.getElementById('target-timeout').value = data.database.target.connection_timeout || 30;
+            }
+        }
+        
+        // Refresh select2 components
+        $('.credential-select').trigger('change.select2');
+        
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        toastr.error('Error loading settings');
+    }
+}
+
+async function saveSettings() {
+    const settings = {
+        database: {
+            host: document.getElementById('db-host').value,
+            port: parseInt(document.getElementById('db-port').value),
+            database: document.getElementById('db-name').value,
+            username: document.getElementById('db-username').value
+        }
+    };
+    
+    try {
+        const response = await fetch('/api/config', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        if (response.ok) {
+            showNotification('Settings saved successfully!', 'success');
+        } else {
+            showNotification('Error saving settings', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showNotification('Error saving settings', 'error');
+    }
+}
+
+async function loadCredentials() {
+    try {
+        const response = await fetch('/api/credentials');
+        const data = await response.json();
+        
+        // Populate database credentials
+        if (data.database) {
+            // Source database (backup from)
+            if (data.database.source) {
+                document.getElementById('source-host').value = data.database.source.host || '';
+                document.getElementById('source-port').value = data.database.source.port || 5432;
+                document.getElementById('source-database').value = data.database.source.database || '';
+                document.getElementById('source-username').value = data.database.source.username || '';
+                document.getElementById('source-password').value = data.database.source.password || '';
+                $('#source-ssl').val(data.database.source.ssl_mode || 'prefer').trigger('change');
+                document.getElementById('source-timeout').value = data.database.source.connection_timeout || 30;
+            }
+            
+            // Target database (restore to)
+            if (data.database.target) {
+                document.getElementById('target-host').value = data.database.target.host || '';
+                document.getElementById('target-port').value = data.database.target.port || 5432;
+                document.getElementById('target-database').value = data.database.target.database || '';
+                document.getElementById('target-username').value = data.database.target.username || '';
+                document.getElementById('target-password').value = data.database.target.password || '';
+                $('#target-ssl').val(data.database.target.ssl_mode || 'prefer').trigger('change');
+                document.getElementById('target-timeout').value = data.database.target.connection_timeout || 30;
+            }
+        }
+        
+        // Populate storage settings
+        const appResponse = await fetch('/api/config');
+        const appData = await appResponse.json();
+        if (appData.app) {
+            document.getElementById('backup-dir').value = appData.app.backup_dir || '';
+            document.getElementById('temp-dir').value = appData.app.temp_dir || '';
+        }
+        
+        // Load available databases for backup selection
+        await loadAvailableDatabases();
+        
+    } catch (error) {
+        console.error('Error loading credentials:', error);
+        toastr.error('Error loading credentials');
+    }
+}
+
+async function loadAvailableDatabases() {
+    try {
+        // This would be an API endpoint to get available databases
+        // For now, we'll use some common database names
+        const databases = [
+            'postgres', 'template1', 'template0',
+            'app_db', 'user_db', 'production', 'staging', 'development'
+        ];
+        
+        const backupDatabaseSelect = document.getElementById('backup-database');
+        backupDatabaseSelect.innerHTML = '<option value="">Select database</option>';
+        
+        databases.forEach(db => {
+            const option = document.createElement('option');
+            option.value = db;
+            option.textContent = db;
+            backupDatabaseSelect.appendChild(option);
+        });
+        
+        // Refresh select2
+        $('#backup-database').trigger('change.select2');
+        
+    } catch (error) {
+        console.error('Error loading databases:', error);
+    }
+}
+
+async function saveCredentials() {
+    const credentials = {
+        database: {
+            default_remote: {
+                host: document.getElementById('remote-host').value,
+                port: parseInt(document.getElementById('remote-port').value) || 5432,
+                database: document.getElementById('remote-database').value,
+                username: document.getElementById('remote-username').value,
+                password: document.getElementById('remote-password').value,
+                ssl_mode: document.getElementById('remote-ssl').value,
+                connection_timeout: parseInt(document.getElementById('remote-timeout').value) || 30
+            },
+            default_local: {
+                host: document.getElementById('local-host').value,
+                port: parseInt(document.getElementById('local-port').value) || 5432,
+                database: document.getElementById('local-database').value,
+                username: document.getElementById('local-username').value,
+                password: document.getElementById('local-password').value,
+                ssl_mode: 'prefer',
+                connection_timeout: 30
+            }
+        }
+    };
+    
+    try {
+        const response = await fetch('/api/credentials', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials)
+        });
+        
+        if (response.ok) {
+            showNotification('Credentials saved successfully!', 'success');
+            // Clear changed marks
+            document.querySelectorAll('.credential-input').forEach(input => {
+                input.classList.remove('border-yellow-500');
+            });
+        } else {
+            showNotification('Error saving credentials', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving credentials:', error);
+        showNotification('Error saving credentials', 'error');
+    }
+}
+
+async function testConnection(type, target) {
+    const statusDiv = document.getElementById('connection-status');
+    const statusContent = document.getElementById('connection-status-content');
+    
+    statusDiv.classList.remove('hidden');
+    statusContent.innerHTML = '<div class="text-blue-600"><i class="fas fa-spinner fa-spin mr-2"></i>Testing connection...</div>';
+    
+    try {
+        let config;
+        if (type === 'database' && target === 'remote') {
+            config = {
+                host: document.getElementById('remote-host').value,
+                port: parseInt(document.getElementById('remote-port').value) || 5432,
+                database: document.getElementById('remote-database').value,
+                username: document.getElementById('remote-username').value,
+                password: document.getElementById('remote-password').value,
+                ssl_mode: document.getElementById('remote-ssl').value,
+                connection_timeout: parseInt(document.getElementById('remote-timeout').value) || 30
+            };
+        } else if (type === 'database' && target === 'local') {
+            config = {
+                host: document.getElementById('local-host').value,
+                port: parseInt(document.getElementById('local-port').value) || 5432,
+                database: document.getElementById('local-database').value,
+                username: document.getElementById('local-username').value,
+                password: document.getElementById('local-password').value,
+                ssl_mode: 'prefer',
+                connection_timeout: 30
+            };
+        }
+        
+        const response = await fetch('/api/test-connection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: type,
+                config: config
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            statusContent.innerHTML = `<div class="text-green-600"><i class="fas fa-check-circle mr-2"></i>${result.message}</div>`;
+        } else {
+            statusContent.innerHTML = `<div class="text-red-600"><i class="fas fa-exclamation-circle mr-2"></i>${result.message}</div>`;
+        }
+        
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        statusContent.innerHTML = '<div class="text-red-600"><i class="fas fa-exclamation-circle mr-2"></i>Connection test failed</div>';
+    }
+}
+
+async function exportConfig() {
+    try {
+        const response = await fetch('/api/config/export');
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'postgres-backup-config.json';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            showNotification('Configuration exported successfully!', 'success');
+        } else {
+            showNotification('Error exporting configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error exporting config:', error);
+        showNotification('Error exporting configuration', 'error');
+    }
+}
+
+async function importConfig(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/config/import', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showNotification(result.message, 'success');
+            // Reload credentials to show imported values
+            loadCredentials();
+        } else {
+            showNotification(result.detail || 'Error importing configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error importing config:', error);
+        showNotification('Error importing configuration', 'error');
+    }
+    
+    // Reset file input
+    event.target.value = '';
+}
+
+function markCredentialAsChanged(input) {
+    input.classList.add('border-yellow-500');
+}
+
+function loadSettings() {
+    loadCredentials();
+}
+</script>
+{% endblock %}
